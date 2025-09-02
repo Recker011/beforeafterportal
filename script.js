@@ -1,7 +1,28 @@
 const { jsPDF } = window.jspdf;
 
+// Loader helpers
+function getLoaderEl() {
+  return document.getElementById("loader");
+}
+function showLoader(text) {
+  const el = getLoaderEl();
+  if (!el) return;
+  const textEl = el.querySelector(".loader-text");
+  if (textEl) textEl.textContent = text || "Processing…";
+  el.removeAttribute("hidden");
+  el.classList.add("show");
+}
+function hideLoader() {
+  const el = getLoaderEl();
+  if (!el) return;
+  el.classList.remove("show");
+  el.setAttribute("hidden", "");
+}
+
 async function makePdf(files, jobName, jobDate, type) {
-  if (!files.length) return alert(`Please select some ${type} images.`);
+  if (!files.length) {
+    throw new Error(`No ${type} images selected.`);
+  }
 
   const pdf = new jsPDF({ unit: "px", format: "a4" });
   const pageW = pdf.internal.pageSize.getWidth();
@@ -20,18 +41,21 @@ async function makePdf(files, jobName, jobDate, type) {
   for (let i = 0; i < files.length; i++) {
     const img = await loadImage(files[i]);
     const { canvas } = resizeImage(img, pageW);
-    if (i >= 0) pdf.addPage();
+    pdf.addPage();
     pdf.addImage(canvas, "JPEG", 0, 0, pageW, Math.min(canvas.height, pageH));
   }
 
-  const safeName = jobName.replace(/[^\w\d-_ ]+/g, "").trim() || "Job";
+  const safeName = (jobName || "Job").replace(/[^\w\d-_ ]+/g, "").trim() || "Job";
   pdf.save(`${type}_${safeName}_${jobDate || "date"}.pdf`);
 }
 
 function loadImage(file) {
   return new Promise((res) => {
     const img = new Image();
-    img.onload = () => res(img);
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      res(img);
+    };
     img.src = URL.createObjectURL(file);
   });
 }
@@ -47,12 +71,40 @@ function resizeImage(img, maxW) {
 }
 
 // --- Event bindings ---
-document.getElementById("makeBefore").addEventListener("click", () => {
+document.getElementById("makeBefore").addEventListener("click", async () => {
   const files = [...document.getElementById("beforeFiles").files];
-  makePdf(files, document.getElementById("jobName").value, document.getElementById("jobDate").value, "Before");
+  if (!files.length) return alert("Please select some Before images.");
+  showLoader("Generating Before PDF…");
+  try {
+    await makePdf(
+      files,
+      document.getElementById("jobName").value,
+      document.getElementById("jobDate").value,
+      "Before"
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Failed to generate Before PDF.");
+  } finally {
+    hideLoader();
+  }
 });
 
-document.getElementById("makeAfter").addEventListener("click", () => {
+document.getElementById("makeAfter").addEventListener("click", async () => {
   const files = [...document.getElementById("afterFiles").files];
-  makePdf(files, document.getElementById("jobName").value, document.getElementById("jobDate").value, "After");
+  if (!files.length) return alert("Please select some After images.");
+  showLoader("Generating After PDF…");
+  try {
+    await makePdf(
+      files,
+      document.getElementById("jobName").value,
+      document.getElementById("jobDate").value,
+      "After"
+    );
+  } catch (err) {
+    console.error(err);
+    alert("Failed to generate After PDF.");
+  } finally {
+    hideLoader();
+  }
 });
