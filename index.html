@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cleaner Photo to PDF</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <main class="app">
+    <h1>Photo → PDF Tool</h1>
+
+    <label>
+      Job Name:
+      <input type="text" id="jobName" placeholder="e.g. Zoe - 26 Peyton Dr">
+    </label>
+
+    <label>
+      Job Date:
+      <input type="date" id="jobDate">
+    </label>
+
+    <div class="section">
+      <h2>Before Images</h2>
+      <input type="file" id="beforeFiles" accept="image/*" multiple>
+      <button id="makeBefore" class="btn">Generate Before PDF</button>
+    </div>
+
+    <div class="section">
+      <h2>After Images</h2>
+      <input type="file" id="afterFiles" accept="image/*" multiple>
+      <button id="makeAfter" class="btn">Generate After PDF</button>
+    </div>
+
+    <p class="note">All processing is done on this device. No upload required.</p>
+  </main>
+</body>
+</html>
