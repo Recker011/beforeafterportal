@@ -72,8 +72,8 @@ function resizeImage(img, maxW) {
 
 // --- Event bindings ---
 document.getElementById("makeBefore").addEventListener("click", async () => {
-  const files = [...document.getElementById("beforeFiles").files];
-  if (!files.length) return alert("Please select some Before images.");
+  const files = (sections.before.pages || []).map(p => p.blob);
+  if (!files.length) return alert("Please add some Before images (camera or choose files).");
   showLoader("Generating Before PDF…");
   try {
     await makePdf(
@@ -91,8 +91,8 @@ document.getElementById("makeBefore").addEventListener("click", async () => {
 });
 
 document.getElementById("makeAfter").addEventListener("click", async () => {
-  const files = [...document.getElementById("afterFiles").files];
-  if (!files.length) return alert("Please select some After images.");
+  const files = (sections.after.pages || []).map(p => p.blob);
+  if (!files.length) return alert("Please add some After images (camera or choose files).");
   showLoader("Generating After PDF…");
   try {
     await makePdf(
@@ -109,48 +109,52 @@ document.getElementById("makeAfter").addEventListener("click", async () => {
   }
 });
 
-// ==== Milestone 1: Basic camera capture + queue ====
-let pages = [];
-let cameraStream = null;
+/* ==== Simplified per-section camera + queue (Before/After) ==== */
 
-function getEl(id) {
-  return document.getElementById(id);
-}
+const sections = {
+  before: { pages: [], stream: null, type: "Before" },
+  after:  { pages: [], stream: null, type: "After"  }
+};
 
-async function initCamera() {
+function el(id) { return document.getElementById(id); }
+function other(key) { return key === "before" ? "after" : "before"; }
+
+async function initCameraFor(key) {
+  // Only one camera active at a time
+  stopCameraFor(other(key));
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error("getUserMedia not supported");
     }
-    cameraStream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: "environment" } },
       audio: false
     });
-    const video = getEl("cameraPreview");
+    sections[key].stream = stream;
+    const video = el(`${key}CameraPreview`);
     if (video) {
-      video.srcObject = cameraStream;
+      video.srcObject = stream;
       try { await video.play(); } catch (_) {}
     }
-    updateUI();
+    updateUIFor(key);
   } catch (err) {
     console.warn("Camera not available:", err);
-    alert("Camera access denied or unavailable. Use Upload Photos instead.");
-    stopCamera();
+    alert("Camera access denied or unavailable. Use Choose Files instead.");
+    stopCameraFor(key);
   }
 }
 
-function stopCamera() {
-  if (cameraStream) {
-    for (const track of cameraStream.getTracks()) track.stop();
-  }
-  cameraStream = null;
-  const video = getEl("cameraPreview");
+function stopCameraFor(key) {
+  const s = sections[key].stream;
+  if (s) s.getTracks().forEach(t => t.stop());
+  sections[key].stream = null;
+  const video = el(`${key}CameraPreview`);
   if (video) video.srcObject = null;
-  updateUI();
+  updateUIFor(key);
 }
 
-function snapPhoto() {
-  const video = getEl("cameraPreview");
+function snapPhotoFor(key) {
+  const video = el(`${key}CameraPreview`);
   if (!video || !video.videoWidth || !video.videoHeight) return;
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
@@ -160,49 +164,49 @@ function snapPhoto() {
   canvas.toBlob((blob) => {
     if (!blob) return;
     const url = URL.createObjectURL(blob);
-    pages.push({ blob, url });
-    renderThumbs();
-    updateUI();
+    sections[key].pages.push({ blob, url });
+    renderThumbsFor(key);
+    updateUIFor(key);
   }, "image/jpeg", 0.85);
 }
 
-function addFilesFromPicker(files) {
+function addFilesFor(key, files) {
   const arr = Array.from(files || []);
   for (const file of arr) {
     if (!file.type.startsWith("image/")) continue;
     const url = URL.createObjectURL(file);
-    pages.push({ blob: file, url });
+    sections[key].pages.push({ blob: file, url });
   }
-  const input = getEl("captureUpload");
+  const input = el(`${key}CaptureUpload`);
   if (input) input.value = "";
-  renderThumbs();
-  updateUI();
+  renderThumbsFor(key);
+  updateUIFor(key);
 }
 
-function removePage(index) {
-  const item = pages[index];
+function removePageFor(key, idx) {
+  const item = sections[key].pages[idx];
   if (item && item.url) URL.revokeObjectURL(item.url);
-  pages.splice(index, 1);
-  renderThumbs();
-  updateUI();
+  sections[key].pages.splice(idx, 1);
+  renderThumbsFor(key);
+  updateUIFor(key);
 }
 
-function clearQueue() {
-  for (const item of pages) {
+function clearQueueFor(key) {
+  for (const item of sections[key].pages) {
     if (item.url) URL.revokeObjectURL(item.url);
   }
-  pages = [];
-  renderThumbs();
-  updateUI();
+  sections[key].pages = [];
+  renderThumbsFor(key);
+  updateUIFor(key);
 }
 
-function renderThumbs() {
-  const container = getEl("thumbs");
+function renderThumbsFor(key) {
+  const container = el(`${key}Thumbs`);
   if (!container) return;
   container.innerHTML = "";
-  // Newest first (top of the grid)
-  for (let idx = pages.length - 1; idx >= 0; idx--) {
-    const p = pages[idx];
+  // Newest first
+  for (let idx = sections[key].pages.length - 1; idx >= 0; idx--) {
+    const p = sections[key].pages[idx];
     const div = document.createElement("div");
     div.className = "thumb";
     const img = document.createElement("img");
@@ -213,85 +217,50 @@ function renderThumbs() {
     del.type = "button";
     del.setAttribute("aria-label", `Remove page ${idx + 1}`);
     del.textContent = "×";
-    del.addEventListener("click", () => removePage(idx));
+    del.addEventListener("click", () => removePageFor(key, idx));
     div.appendChild(img);
     div.appendChild(del);
     container.appendChild(div);
   }
 }
 
-function updateUI() {
-  const live = getEl("cameraLive");
-  const startBtn = getEl("startCamera");
-  const stopBtn = getEl("stopCamera");
-  const shutter = getEl("shutter");
-  const hasStream = !!cameraStream;
+function updateUIFor(key) {
+  const hasStream = !!sections[key].stream;
+  const live = el(`${key}CameraLive`);
+  const startBtn = el(`${key}StartCamera`);
+  const stopBtn = el(`${key}StopCamera`);
+  const shutter = el(`${key}Shutter`);
   if (live) live.classList.toggle("hidden", !hasStream);
   if (startBtn) startBtn.classList.toggle("hidden", hasStream);
   if (stopBtn) stopBtn.disabled = !hasStream;
   if (shutter) shutter.disabled = !hasStream;
 
-  const disabled = pages.length === 0;
-  const beforeQ = getEl("makeBeforeFromQueue");
-  const afterQ = getEl("makeAfterFromQueue");
-  const clearBtn = getEl("clearQueue");
-  if (beforeQ) beforeQ.disabled = disabled;
-  if (afterQ) afterQ.disabled = disabled;
+  const disabled = sections[key].pages.length === 0;
+  if (key === "before") {
+    const makeBtn = el("makeBefore");
+    if (makeBtn) makeBtn.disabled = disabled;
+  } else {
+    const makeBtn = el("makeAfter");
+    if (makeBtn) makeBtn.disabled = disabled;
+  }
+  const clearBtn = el(`${key}ClearQueue`);
   if (clearBtn) clearBtn.disabled = disabled;
 }
 
-// Event bindings for capture/queue
-(function bindCaptureEvents() {
-  const startBtn = getEl("startCamera");
-  const stopBtn = getEl("stopCamera");
-  const shutter = getEl("shutter");
-  const upload = getEl("captureUpload");
-  const clearBtn = getEl("clearQueue");
-  const beforeQ = getEl("makeBeforeFromQueue");
-  const afterQ = getEl("makeAfterFromQueue");
+(function bindSections() {
+  // Before
+  el("beforeStartCamera")?.addEventListener("click", () => initCameraFor("before"));
+  el("beforeStopCamera")?.addEventListener("click", () => stopCameraFor("before"));
+  el("beforeShutter")?.addEventListener("click", () => snapPhotoFor("before"));
+  el("beforeCaptureUpload")?.addEventListener("change", (e) => addFilesFor("before", e.target.files));
+  el("beforeClearQueue")?.addEventListener("click", () => clearQueueFor("before"));
+  updateUIFor("before");
 
-  if (startBtn) startBtn.addEventListener("click", initCamera);
-  if (stopBtn) stopBtn.addEventListener("click", stopCamera);
-  if (shutter) shutter.addEventListener("click", snapPhoto);
-  if (upload) upload.addEventListener("change", (e) => addFilesFromPicker(e.target.files));
-  if (clearBtn) clearBtn.addEventListener("click", clearQueue);
-
-  if (beforeQ) beforeQ.addEventListener("click", async () => {
-    if (!pages.length) return alert("No images in queue.");
-    showLoader("Generating Before PDF…");
-    try {
-      await makePdf(
-        pages.map(p => p.blob),
-        getEl("jobName").value,
-        getEl("jobDate").value,
-        "Before"
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Failed to generate Before PDF.");
-    } finally {
-      hideLoader();
-    }
-  });
-
-  if (afterQ) afterQ.addEventListener("click", async () => {
-    if (!pages.length) return alert("No images in queue.");
-    showLoader("Generating After PDF…");
-    try {
-      await makePdf(
-        pages.map(p => p.blob),
-        getEl("jobName").value,
-        getEl("jobDate").value,
-        "After"
-      );
-    } catch (err) {
-      console.error(err);
-      alert("Failed to generate After PDF.");
-    } finally {
-      hideLoader();
-    }
-  });
+  // After
+  el("afterStartCamera")?.addEventListener("click", () => initCameraFor("after"));
+  el("afterStopCamera")?.addEventListener("click", () => stopCameraFor("after"));
+  el("afterShutter")?.addEventListener("click", () => snapPhotoFor("after"));
+  el("afterCaptureUpload")?.addEventListener("change", (e) => addFilesFor("after", e.target.files));
+  el("afterClearQueue")?.addEventListener("click", () => clearQueueFor("after"));
+  updateUIFor("after");
 })();
-
-// initialize UI state
-updateUI();

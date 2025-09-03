@@ -22,43 +22,56 @@
       <input type="date" id="jobDate">
     </label>
 
-    <div class="section" id="captureSection">
-      <h2>Capture Images</h2>
+    <div class="section" id="beforeSection">
+      <h2>Before Images</h2>
 
-      <button id="startCamera" class="btn">Start Camera</button>
+      <button id="beforeStartCamera" class="btn">Start Camera</button>
 
-      <div id="cameraLive" class="camera-live hidden" aria-live="polite">
-        <video id="cameraPreview" playsinline autoplay muted></video>
+      <div id="beforeCameraLive" class="camera-live hidden" aria-live="polite">
+        <video id="beforeCameraPreview" playsinline autoplay muted></video>
         <div class="camera-controls">
-          <button id="shutter" class="shutter-btn" aria-label="Take photo"></button>
-          <button id="stopCamera" class="btn btn-secondary">Stop Camera</button>
+          <button id="beforeShutter" class="shutter-btn" aria-label="Take photo"></button>
+          <button id="beforeStopCamera" class="btn btn-secondary">Stop Camera</button>
         </div>
       </div>
 
-      <input type="file" id="captureUpload" accept="image/*" multiple capture="environment">
+      <input type="file" id="beforeCaptureUpload" accept="image/*" multiple capture="environment">
 
       <div class="queue-controls">
-        <button id="clearQueue" class="btn btn-secondary">Clear All</button>
+        <button id="beforeClearQueue" class="btn btn-secondary">Clear All</button>
       </div>
 
-      <div id="thumbs" class="thumb-grid" aria-live="polite"></div>
+      <div id="beforeThumbs" class="thumb-grid" aria-live="polite"></div>
 
       <div class="export-row">
-        <button id="makeBeforeFromQueue" class="btn">Generate Before PDF (Queue)</button>
-        <button id="makeAfterFromQueue" class="btn">Generate After PDF (Queue)</button>
+        <button id="makeBefore" class="btn">Generate Before PDF</button>
       </div>
     </div>
 
-    <div class="section">
-      <h2>Before Images</h2>
-      <input type="file" id="beforeFiles" accept="image/*" multiple>
-      <button id="makeBefore" class="btn">Generate Before PDF</button>
-    </div>
-
-    <div class="section">
+    <div class="section" id="afterSection">
       <h2>After Images</h2>
-      <input type="file" id="afterFiles" accept="image/*" multiple>
-      <button id="makeAfter" class="btn">Generate After PDF</button>
+
+      <button id="afterStartCamera" class="btn">Start Camera</button>
+
+      <div id="afterCameraLive" class="camera-live hidden" aria-live="polite">
+        <video id="afterCameraPreview" playsinline autoplay muted></video>
+        <div class="camera-controls">
+          <button id="afterShutter" class="shutter-btn" aria-label="Take photo"></button>
+          <button id="afterStopCamera" class="btn btn-secondary">Stop Camera</button>
+        </div>
+      </div>
+
+      <input type="file" id="afterCaptureUpload" accept="image/*" multiple capture="environment">
+
+      <div class="queue-controls">
+        <button id="afterClearQueue" class="btn btn-secondary">Clear All</button>
+      </div>
+
+      <div id="afterThumbs" class="thumb-grid" aria-live="polite"></div>
+
+      <div class="export-row">
+        <button id="makeAfter" class="btn">Generate After PDF</button>
+      </div>
     </div>
 
     <p class="note">All processing is done on this device. No upload required.</p>
