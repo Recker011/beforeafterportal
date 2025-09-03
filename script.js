@@ -200,7 +200,9 @@ function renderThumbs() {
   const container = getEl("thumbs");
   if (!container) return;
   container.innerHTML = "";
-  pages.forEach((p, idx) => {
+  // Newest first (top of the grid)
+  for (let idx = pages.length - 1; idx >= 0; idx--) {
+    const p = pages[idx];
     const div = document.createElement("div");
     div.className = "thumb";
     const img = document.createElement("img");
@@ -215,7 +217,7 @@ function renderThumbs() {
     div.appendChild(img);
     div.appendChild(del);
     container.appendChild(div);
-  });
+  }
 }
 
 function updateUI() {

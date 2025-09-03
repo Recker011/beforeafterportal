@@ -12,6 +12,8 @@ body {
   font-family: system-ui, sans-serif;
   background: var(--bg);
   color: var(--ink);
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
 }
 
 .app {
@@ -39,7 +41,7 @@ input[type="text"], input[type="date"], input[type="file"] {
   width: 100%;
   margin-top: 4px;
   padding: 10px;
-  font-size: 14px;
+  font-size: 16px;
   border: 1px solid var(--ring);
   border-radius: 8px;
 }
