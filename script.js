@@ -42,7 +42,7 @@ async function makePdf(files, jobName, jobDate, type) {
     const img = await loadImage(files[i]);
     const { canvas } = resizeImage(img, pageW);
     pdf.addPage();
-    pdf.addImage(canvas, "JPEG", 0, 0, pageW, Math.min(canvas.height, pageH));
+    pdf.addImage(canvas, "JPEG", 0, 0, pageW, Math.min(canvas.height, pageH), null, 'NONE');
   }
 
   const safeName = (jobName || "Job").replace(/[^\w\d-_ ]+/g, "").trim() || "Job";
@@ -167,7 +167,7 @@ function snapPhotoFor(key) {
     sections[key].pages.push({ blob, url });
     renderThumbsFor(key);
     updateUIFor(key);
-  }, "image/jpeg", 0.85);
+  }, "image/jpeg", 0.95);
 }
 
 function addFilesFor(key, files) {
